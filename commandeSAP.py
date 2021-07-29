@@ -10,16 +10,28 @@ from openpyxl.utils import get_column_letter
 import sys
 import os
 
-racine=r"c:\users\sdecaluwe\Desktop\factupayview\code"
-#path_file="C:/Users/sdecaluwe/Desktop/payviewSAP/Copie de 20210602_18h51_mai_2021_facturationGlobale.xlsx"
-path_file = sys.argv[1]
+racine=r"c:\users\sdecaluwe\Desktop\factupayview\code\Generated"
+path_file="C:/Users/sdecaluwe/Desktop/factupayview/code/Generated/20210706_15h08_facturation_juin_2021/20210706_15h08_juin_2021_facturationGlobale.xlsx"
 
-nom_fichier="C:/Users/sdecaluwe/Desktop/factupayview/code/synthese ADV payview.xlsx"
-PO_number ="facturation mensuelle MM.AAAA---a preciser----" 
-periode_long = "MM.AAAA---a preciser----"
+#path_file = sys.argv[1]
+#mois = sys.argv[2]
+#annee = sys.argv[3]
+mois = "6"
+annee = "2021"
+
+nom_fichier="C:/Users/sdecaluwe/Desktop/factupayview/code/Generated/synthese ADV payview.xlsx"
+
+PO_number ="facturation mensuelle "+mois+"."+annee
+
+periode_long = mois+"."+annee
+
 repertoire_syntheses=racine+"\\"
-path_lut = racine+"\input\LUT.xlsx"
+
+path_lut = racine+"..\input\LUT.xlsx"
+
 path_concat = racine+"\concatentation.csv"
+
+overfee_exonerated = ["ACCOR", "ADIDAS FRANCE", "AEM SOFTS", "AGAPES", "AMESYS CONSEIL", "AUCHAN HYPERMARCHE", "B & B HOTELS", "BOULANGER", "BUFFALO GRILL", "CABESTO", "CABINET OTP", "CARREFOUR BELGIQUE", "CARREFOUR FRANCE", "CARREFOUR ITALIE", "CGR", "CONDUENT", "COURIR FRANCE", "DATACAR", "ELIOR", "ERAM", "ETAM LINGERIE", "EUROTUNNEL", "FFT", "GO SPORT", "GRAND FRAIS (FUJITSU)", "JULES", "HEURTAUX SAS", "IRIS INFORMATIQUE", "JCDECAUX FRANCE", "KBANE", "KFC FRANCE SAS", "LA FERME DU SART", "LE BON MARCHE", "LE FURET DU NORD", "Leroy Merlin Italy", "MCDONALD'S FRANCE", "METRO FRANCE", "NORAUTO FRANCE", "PARAGON ID", "PARKARE FRANCE", "PETIT-BATEAU", "PRINTEMPS", "PROMOD", "RATP", "SOCIETE AIR FRANCE", "SODEXO", "STIME", "SUPERMARCHES MATCH", "TAPIS SAINT MACLOU", "TISSEO", "TOSHIBA", "VIVATICKET", "WASHTEC FRANCE", "WAYCOM INTERNATIONAL", "AVT", "AVT Grossiste", "HM TELECOM", "HM TELECOM Grossiste", "IPSF", "NEOSYSTEMS_IPSF", "IPSF DIRECT", "LAVANCE EMIC", "CAFES MERLING", "SELECTA", "THE BOX OFFICE COMPANY", "LM CONTROL", "LM CONTROL Grossiste", "MONEY30", "MONEY30 Grossiste", "ORANGE"]
 
 
 orga_tss = "8101"
@@ -66,6 +78,8 @@ ws_output = wb_output.create_sheet('Synthèse ADV')
 ###
 
 
+if len(mois)==1:
+    mois = "0"+mois
 
 
 codeSAP=[0]*15
@@ -86,8 +100,15 @@ for row in range(2, ws_input.max_row+1):
           if quantity=="None":
              quantity="0"
           libelle = ws_input.cell(1,column).value
-          if codeSAP!="" and codeSAP!="None" and int(quantity)!=0:
-             row_to_add=[codeSAP, client, "", "service", "service", "",libelle,"", int(quantity), "", "","01/01/2021","31/03/2021",bu]
+          if libelle == "PAS_SIM_OVERFEE" and client in overfee_exonerated:
+             quantity = "0"
+          if codeSAP!="" and codeSAP!="None" and int(quantity)!=0: 
+             if mois in ["01","03","05","07","08","10","12"]:
+                 row_to_add=[codeSAP, client, "", "service", "service", "",libelle,"", int(quantity), "", "","01."+str(mois)+"."+str(annee),"31."+str(mois)+"."+str(annee),bu]
+             else:
+                row_to_add=[codeSAP, client, "", "service", "service", "",libelle,"", int(quantity), "", "","01."+str(mois)+"."+str(annee),"30."+str(mois)+"."+str(annee),bu]
+             if mois=="02":
+                row_to_add=[codeSAP, client, "", "service", "service", "",libelle,"", int(quantity), "", "","01."+str(mois)+"."+str(annee),"28."+str(mois)+"."+str(annee),bu]
              ws_output.append(row_to_add)
 wb_output.save(nom_fichier)
 
@@ -154,9 +175,13 @@ for i in os.listdir(repertoire_syntheses):
                 fichier_total.write("TEXTH;0011;FR;adv-telechargements@ingenico.com;;;;;\n")
                 code_client_precedent=code_client
              code_produit = str(ws.cell(row+1,7).value)
+             if code_produit == "PAS_SIM1_500_N":
+                code_produit = "PAS_SIM_1_500_N"
+             if code_produit == "PAS_SIM2_500_N":
+                code_produit = "PAS_SIM_2_500_N"
              quantite = str(ws.cell(row+1,9).value)
-             # exclusion et substitution du code produit le cas echeant
-             
+
+             # exclusion et substitution du code produit le cas echeant    
              # écriture d'une ligne correspondant à un produit, quantité, client.
              # codes SAP exclus : non reconnus par SAP car à créer.
              # Les codes SAP à tarif nul sont traités avec le poste_tarif_nul (ZSEN, ZSEF ...).
